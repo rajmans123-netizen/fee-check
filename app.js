@@ -106,22 +106,24 @@ function render() {
 function renderMember() {
   const bills = S.bills.map(x => x.b), s = summary(bills), n = s.n, V = $('mVerdict');
   const price = parseFloat($('mPrice').value) || 0, per = +$('mPer').value || 1, months = Math.max(0.25, parseFloat($('mMonths').value) || 1);
+  const told = parseFloat(($('mSaved').value || '').replace(/[^\d.]/g, '')) || 0;   // the app's own "Gold saved you ₹X" figure, when typed
   store.set('member', { price, per, months });
-  const cost = price / per * months, saved = s.waived, deliv = (s.fees.delivery || 0) + (s.fees.smallcart || 0);
+  $('mMonthsLabel').textContent = told ? "I've had it for about" : 'These orders are from about';
+  const cost = price / per * months, saved = told || s.waived, deliv = (s.fees.delivery || 0) + (s.fees.smallcart || 0);
   V.className = 'verdict'; V.textContent = '';
   if (!price) { V.classList.add('na'); V.append('Type what your membership costs.'); return; }
-  if (saved <= 0) {
+  if (saved <= 0 && !told) {
     V.classList.add('na'); V.append(el('b', '', 'Nothing was waived on these bills'));
     V.append(deliv > 0 ? `You paid ${rs(deliv)} in delivery and small-cart fees. A free-delivery membership costing ${rs(cost)} for this time would ${deliv > cost ? `have saved you about ${rs(deliv - cost)}.` : `not have paid for itself.`}` : 'So a membership saved you nothing here.');
     return;
   }
-  const net = saved - cost, perOrder = saved / n, need = perOrder > 0 ? Math.ceil(price / per / perOrder) : null;
+  const net = saved - cost, perOrder = (s.waived || saved) / n, need = perOrder > 0 ? Math.ceil(price / per / perOrder) : null;
   V.classList.add(net >= 0 ? 'yes' : 'no');
   V.append(el('b', '', net >= 0 ? `Worth it: you're ${rs(net)} ahead` : `Not worth it: you're ${rs(-net)} behind`));
-  V.append(`It saved you ${rs(saved)} on these ${n} order${n > 1 ? 's' : ''} and cost ${rs(cost)} for ${months} month${months === 1 ? '' : 's'}.`);
+  V.append(told ? `Your app says it saved you ${rs(saved)}, and it cost ${rs(cost)} for ${months} month${months === 1 ? '' : 's'}.` : `It saved you ${rs(saved)} on these ${n} order${n > 1 ? 's' : ''} and cost ${rs(cost)} for ${months} month${months === 1 ? '' : 's'}.`);
   if (need) V.append(el('div', '', `It pays for itself if you order about ${need} time${need > 1 ? 's' : ''} a month.`));
 }
-for (const id of ['mPrice', 'mPer', 'mMonths']) $(id).addEventListener('input', () => S.bills.length && renderMember());
+for (const id of ['mPrice', 'mPer', 'mMonths', 'mSaved']) $(id).addEventListener('input', () => S.bills.length && renderMember());
 { const m = store.get('member', null); if (m) { $('mPrice').value = m.price; $('mPer').value = String(m.per); $('mMonths').value = m.months; } }
 
 // ---------------------------------------------------------------- wiring
