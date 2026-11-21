@@ -24,6 +24,15 @@ ok(b.ok && b.fees.handling === 11 && b.fees.smallcart === 20 && b.fees.surge ===
 // "GST and restaurant charges" and a tip (shown apart from fees)
 b = readBill('Bill Details\nItem Total ₹199\nDelivery Fee | 2.4 kms ₹38\nDelivery Tip ₹20\nPlatform fee ₹14.90\nGST and Restaurant Charges ₹19.45\nTo Pay ₹291.35');
 ok(b.ok && b.tip === 20 && b.tax === 19.45 && near(b.feeTotal, 52.9), 'tip apart, distance in the label ignored: ' + JSON.stringify(b));
+// Swiggy wording: distance next to the delivery fee, "GST and Restaurant Charges", "Extra discount for you", "To Pay" / "Bill Total"
+b = readBill('Bill Details\nItem Total ₹448.00\nDelivery Fee | 3.9 kms ₹47.00\nExtra discount for you -₹50.00\nPlatform fee ₹17.58\nGST and Restaurant Charges ₹38.45\nTo Pay ₹501.03');
+ok(b.ok && b.fees.delivery === 47 && b.fees.platform === 17.58 && b.tax === 38.45 && b.discounts === 50 && b.waived === 0, 'Swiggy bill: ' + JSON.stringify(b));
+b = readBill('Bill Details\nItem Total ₹349.00\nDelivery Fee | 2.1 kms ₹40.00 FREE\nPlatform fee ₹17.58\nGST and Restaurant Charges ₹21.30\nBill Total ₹387.88\nPaid Via UPI');
+ok(b.ok && b.fees.delivery === 0 && b.waived === 40 && b.paid === 387.88, 'Swiggy One free delivery: waived ₹40, not the 2.1 km: ' + JSON.stringify(b));
+b = readBill('Bill Details\nItem Total %349.00\nDelivery Fee | 4.6 kms 749.00 =0.00\nDelivery Tip 720.00\nPlatform fee F17.58\nGST & Other Charges =21.30\nTo Pay ¥407.88');
+ok(b.ok && b.waived === 49 && b.tip === 20 && b.fees.delivery === 0, 'Swiggy bill with ₹ misreads and a ₹49 → ₹0 delivery fee: ' + JSON.stringify(b));
+b = readBill('Bill details\nItem total ₹286.00\nHandling fee ₹12.00\nSmall cart fee ₹30.00\nDelivery fee ₹25.00\nLate night fee ₹20.00\nGrand Total ₹373.00');
+ok(b.ok && b.feeTotal === 87 && b.fees.smallcart === 30, 'Instamart-style grocery bill: ' + JSON.stringify(b.fees));
 // several bills
 const s = summary([readBill('Bill details\nItem total ₹100.00\nDelivery fee ₹30.00\nTo pay ₹130.00'), readBill('Bill details\nItem total ₹200.00\nDelivery fee ₹40.00 FREE\nPlatform fee ₹10.00\nTo pay ₹210.00')]);
 ok(s.n === 2 && s.food === 300 && s.feeTotal === 40 && s.waived === 40 && s.paid === 340, 'summary of two bills: ' + JSON.stringify(s));

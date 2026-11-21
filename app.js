@@ -45,11 +45,11 @@ function recompute(b) {
 // ---------------------------------------------------------------- the answer
 function render() {
   const bills = S.bills.map(x => x.b), s = summary(bills), n = s.n, extra = s.feeTotal + s.tax;
-  const tips = bills.reduce((t, b) => t + (b.tip || 0), 0);
+  const tips = bills.reduce((t, b) => t + (b.tip || 0), 0), mixed = bills.some(b => b.taxMixed), taxWord = mixed ? 'taxes and restaurant charges' : 'taxes';
   // headline
   const h = $('head'); h.textContent = '';
   h.append(el('div', 'k', n === 1 ? 'On top of your food, you paid' : `On top of your food, in ${n} orders, you paid`), el('b', '', rs(extra)));
-  h.append(el('span', '', `${rs(s.food)} of food → ${rs(s.food + extra)} with fees and taxes (${pct(extra, s.food)}% more): ${rs(s.feeTotal)} in fees, ${rs(s.tax)} in taxes.`));
+  h.append(el('span', '', `${rs(s.food)} of food → ${rs(s.food + extra)} with fees and taxes (${pct(extra, s.food)}% more): ${rs(s.feeTotal)} in fees, ${rs(s.tax)} in ${taxWord}.`));
   const bar = el('div', 'split'), tot = s.food + extra || 1;
   for (const [cls, v] of [['f', s.food], ['t', s.tax], ['x', s.feeTotal]]) { const i = el('i', cls); i.style.width = (v / tot * 100) + '%'; bar.append(i); }
   const lg = el('div', 'legend'); for (const [c, t] of [['#fff', 'Food'], ['#FFD3B4', 'Taxes'], ['#7A2E00', 'Fees']]) { const sp = el('span'); const i = el('i'); i.style.background = c; sp.append(i, t); lg.append(sp); }
@@ -76,7 +76,7 @@ function render() {
   const R = $('rows'); R.textContent = '';
   const row = (l, a, cls, sub) => { const r = el('div', 'r ' + (cls || '')); const L = el('div', 'l', l); if (sub) L.append(el('small', '', sub)); r.append(L, el('div', 'a', a)); R.append(r); };
   row('Food / items', rs(s.food, true), '', n > 1 ? `${rs(s.food / n)} an order on average` : null);
-  row('Taxes (GST)', rs(s.tax, true), 'tax');
+  row(mixed ? 'Taxes and restaurant charges' : 'Taxes (GST)', rs(s.tax, true), 'tax', mixed ? 'Some apps put packaging in here too' : null);
   for (const k of FEE_KINDS) if (s.fees[k] > 0) row(NAMES[k], rs(s.fees[k], true), 'fee', n > 1 ? `${bills.filter(b => b.fees[k] > 0).length} of ${n} orders` : null);
   if (tips > 0) row('Tips (your choice)', rs(tips, true));
   if (s.discounts > 0) row('Coupons and discounts', '− ' + rs(s.discounts, true), 'good');

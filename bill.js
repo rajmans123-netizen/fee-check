@@ -62,7 +62,8 @@ export function lines(text) {
     const line = raw.replace(/\s+/g, ' ').trim(); if (!line) continue;
     const kind = (KINDS.find(([, re]) => re.test(line)) || [])[0]; if (!kind || kind === 'skip') continue;
     // the label = text before the first amount; codes like GETOFF200ON1149 aren't amounts
-    const clean = line.replace(/\b[A-Z]{2,}[A-Z0-9]*\d+[A-Z0-9]*\b/g, ' ');
+    const clean = line.replace(/\b[A-Z]{2,}[A-Z0-9]*\d+[A-Z0-9]*\b/g, ' ')   // coupon codes like GETOFF200ON1149
+      .replace(/\|?\s*\d+(?:[.,]\d+)?\s*k\.?m\.?s?\b/gi, ' ');                          // Swiggy's "Delivery Fee | 3.9 kms": a distance, not money
     const am = amounts(clean).filter(a => a.cands.some(v => v > 0 || /0\.00|^0$/.test(a.raw)) || /free/i.test(clean));
     const free = /\bfree\b/i.test(clean);
     if (!am.length && !free) continue;
@@ -121,6 +122,7 @@ export function readBill(text) {
   for (const r of discounts) out.discounts += Math.abs(val(r));
   if (out.paid == null) out.paid = (out.grand ?? (out.food || 0) + Object.values(out.fees).reduce((s, x) => s + x, 0) + out.tax + out.tip + out.donation) - out.discounts + out.round;
   if (item?.orig) { const o = item.orig.filter(x => x > out.food).sort((x, y) => x - y)[0]; if (o != null) out.itemDiscount = o - out.food; }
+  out.taxMixed = charges.some(r => r.kind === 'taxcharges');   // Swiggy puts restaurant packaging inside "GST and Restaurant Charges"
   out.feeTotal = Object.values(out.fees).reduce((s, x) => s + x, 0);
   out.extra = out.feeTotal + out.tax;            // on top of the food: fees + taxes (tips and donations are your choice, shown apart)
   for (const k of Object.keys(out)) if (typeof out[k] === 'number') out[k] = Math.round(out[k] * 100) / 100;
